@@ -14,7 +14,7 @@
       
       <guid>https://pnetwork.github.io/mavis-static/posts/mavis/</guid>
       <description>Introduce Mavis is &amp;hellip;
-TLTR; curl -sSL https://github.com/pnetwork/mavis-static/release/1.0.0/install.sh |sh
+TLTR; curl -sSL https://pnetwork.github.io/mavis-static/release/1.0.0/install.sh |sh
 command：
 log systemd start stop </description>
     </item>
