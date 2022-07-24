@@ -87,8 +87,8 @@ check_environment() {
 	fi
 	## Check systemd exists
 	if ! command_exists systemctl; then
-		echo -e "${COLOR_RED}systemctl command not found${COLOR_REST}"
-		echo -e "${COLOR_RED}ERROR: Mavis does not support operating systems without systemd${COLOR_REST}"
+		echo "systemctl command not found"
+		echo "ERROR: Mavis does not support operating systems without systemd"
 		exit 1
 	else
 		echo -e "${COLOR_GREEN}check systemd ok${COLOR_REST}"
@@ -104,7 +104,7 @@ check_environment() {
 	## Check memory
 	local avail_mem="$(free -g | grep Mem | awk '{print $2}')"
 	if [ "$avail_mem" -lt 16 ]; then
-		echo -e "${COLOR_RED}Memory is not enough to isntall mavis${COLOR_REST}"
+		echo "${COLOR_RED}Memory is not enough to isntall mavis${COLOR_REST}"
 		exit 1
 	else
 		echo -e "${COLOR_GREEN}check memory ok${COLOR_REST}"
@@ -115,11 +115,11 @@ check_environment() {
 		echo -e "${COLOR_GREEN}Check HTTP connectivity is up${COLOR_REST}"
 		;;
 	5)
-		echo -e "${COLOR_RED}Can not connect to ${DOWNLOAD_URL}${COLOR_REST}"
-		echo -e "${COLOR_RED}Check network status failed${COLOR_REST}"
+		echo "The web proxy won't let us through"
+		echo -e "${COLOR_RED}check network status failed${COLOR_REST}"
 		;;
 	*)
-		echo -e "The network is down or very slow"
+		echo "The network is down or very slow"
 		echo -e "${COLOR_RED}check network status failed${COLOR_REST}"
 		;;
 	esac
@@ -1114,7 +1114,7 @@ echo "          /:::/    /               /:::/    /                             
 echo "         /:::/    /               /:::/    /                                       \:::\____\               \::::/    / "
 echo "         \::/    /                \::/    /                                         \::/    /                \::/    / "
 echo "          \/____/                  \/____/                                           \/____/                  \/____/ "
-echo -e "---------   ${COLOR_GREEN}Install mavis keeper success , please check it${COLOR_REST}"
-echo -e "---------   ${COLOR_GREEN}Run command: sudo journalctl CONTAINER_NAME=keeper -f${COLOR_REST}"
-echo -e "---------   ${COLOR_GREEN}Your MAVIS_URL is [http://${MAVIS_URL}]${COLOR_REST}"
-echo -e "---------   ${COLOR_GREEN}Your default account and passwd is [admin/admin]${COLOR_REST}"
+echo "---------   Install mavis keeper success , please check it"
+echo "---------   Run command: sudo journalctl CONTAINER_NAME=keeper -f"
+echo "---------   Your MAVIS_URL is [http://${MAVIS_URL}]"
+echo "---------   Your default account and passwd is [admin/admin]"
