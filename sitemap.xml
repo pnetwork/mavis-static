@@ -2,16 +2,9 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>https://pnetwork.github.io/mavis-static/</loc>
-    <lastmod>2022-07-24T19:10:26+08:00</lastmod>
-  </url><url>
-    <loc>https://pnetwork.github.io/mavis-static/posts/mavis_install/</loc>
-    <lastmod>2022-07-24T19:10:26+08:00</lastmod>
-  </url><url>
-    <loc>https://pnetwork.github.io/mavis-static/posts/</loc>
-    <lastmod>2022-07-24T19:10:26+08:00</lastmod>
-  </url><url>
     <loc>https://pnetwork.github.io/mavis-static/categories/</loc>
+  </url><url>
+    <loc>https://pnetwork.github.io/mavis-static/</loc>
   </url><url>
     <loc>https://pnetwork.github.io/mavis-static/tags/</loc>
   </url>
