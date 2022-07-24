@@ -1,4 +1,0 @@
-baseURL = 'https://pnetwork.github.io/mavis-static/'
-languageCode = 'en-us'
-title = 'Mavis'
-theme="mavis-static"
