@@ -74,21 +74,20 @@ check_user() {
 }
 
 
-
 check_environment() {
 
 	## Check disk space (40GB)
 	local avail_disk=$(df | grep "/$" | awk '{print $4}')
 	if [ "$avail_disk" -lt 41943040 ]; then
-		echo -e "${COLOR_RED}disk space is not enough to isntall mavis${COLOR_REST}"
+		echo -e "${COLOR_RED}Storage size error. Minimum storage size: 40GB${COLOR_REST}"
 		exit 1
 	else
 		echo -e "${COLOR_GREEN}check disk size ok${COLOR_REST}"
 	fi
 	## Check systemd exists
 	if ! command_exists systemctl; then
-		echo "systemctl command not found"
-		echo "ERROR: Mavis does not support operating systems without systemd"
+		echo -e "${COLOR_RED}systemctl command not found${COLOR_REST}"
+		echo -e "${COLOR_RED}ERROR: Mavis does not support operating systems without systemd${COLOR_REST}"
 		exit 1
 	else
 		echo -e "${COLOR_GREEN}check systemd ok${COLOR_REST}"
@@ -96,7 +95,7 @@ check_environment() {
 	## Check CPU
 	local cpu_total="$(lscpu | grep '^CPU(s):' | awk '{print $2}')"
 	if [ "$cpu_total" -lt 4 ]; then
-		echo -e "${COLOR_RED}CPU core is not enough to isntall mavis${COLOR_REST}"
+		echo -e "${COLOR_RED}CPU cores error. Minimum CPU cores: 4${COLOR_REST}"
 		exit 1
 	else
 		echo -e "${COLOR_GREEN}check cpu ok${COLOR_REST}"
@@ -104,7 +103,7 @@ check_environment() {
 	## Check memory
 	local avail_mem="$(free -g | grep Mem | awk '{print $2}')"
 	if [ "$avail_mem" -lt 16 ]; then
-		echo "${COLOR_RED}Memory is not enough to isntall mavis${COLOR_REST}"
+		echo -e "${COLOR_RED}Memory size error. Minimum memory size${COLOR_REST}"
 		exit 1
 	else
 		echo -e "${COLOR_GREEN}check memory ok${COLOR_REST}"
@@ -115,11 +114,11 @@ check_environment() {
 		echo -e "${COLOR_GREEN}Check HTTP connectivity is up${COLOR_REST}"
 		;;
 	5)
-		echo "The web proxy won't let us through"
-		echo -e "${COLOR_RED}check network status failed${COLOR_REST}"
+		echo -e "${COLOR_RED}Can not connect to ${DOWNLOAD_URL}${COLOR_REST}"
+		echo -e "${COLOR_RED}Check network status failed${COLOR_REST}"
 		;;
 	*)
-		echo "The network is down or very slow"
+		echo -e "The network is down or very slow"
 		echo -e "${COLOR_RED}check network status failed${COLOR_REST}"
 		;;
 	esac
@@ -127,7 +126,7 @@ check_environment() {
 
 keeper_cli() {
 	result=$(${sh_c} "docker run --rm -v  ${INSTALL_DIR}:${INSTALL_DIR} -v /var/run/docker.sock:/var/run/docker.sock -e CURRENT_VERSION=${MAVIS_VERSION} ${MAVIS_REPO}/keeper:${MAVIS_VERSION} ${1} ${2} ${3} ")
-	if echo "${result}" |grep "Not Found";then
+	if echo "${result}" |grep "Not Found Item";then
 		echo -e "${COLOR_RED} ${2} create failed ${COLOR_REST}"
 		exit 1
 	elif [ -z "$result" ];then
@@ -139,9 +138,19 @@ keeper_cli() {
 
 install_mavis() {
 
+
+    ## Remove old container
+    local old_list="$(echo $($sh_c "docker ps" |grep ${MAVIS_REPO}|awk '{print $1}')  )"
+    echo ${old_list}
+    if [ x"$old_list" != x"" ];then
+            $sh_c "docker rm --force ${old_list} || true"
+    fi
+
+
 	## check config dir if exist
 	if [ -d "${INSTALL_DIR}/config" ]; then
 		echo -e "${COLOR_GREEN}Path ${INSTALL_DIR}/config is already exist${COLOR_REST}"
+		export $(xargs <${INSTALL_DIR}/config/.env)
 		$sh_c "mv -b ${INSTALL_DIR}/config ${INSTALL_DIR}/backups/config-$(date +'%Y-%m-%d-%H-%M:')"
 	fi
 
@@ -152,6 +161,8 @@ install_mavis() {
 		if [ -z "$PUBLIC_IP" ]; then
 			MAVIS_URL="$(ip route get 1 | awk '{gsub(".*src",""); print $1; exit}')"
 		fi
+	else
+		MAVIS_URL=$(echo $MAVIS_URL|sed 's/https\?:\/\///g')
 	fi
 
 	## Get PostgreSQL
@@ -164,6 +175,7 @@ install_mavis() {
 	SECRET_KEY=${SECRET_KEY:-$(keeper_cli generate-key SECRET_KEY)}
 	GATEWAY_CLIENT_ID=${GATEWAY_CLIENT_ID:-$(keeper_cli generate-key GATEWAY_CLIENT_ID)}
 	GATEWAY_CLIENT_SECRET=${GATEWAY_CLIENT_SECRET:-$(keeper_cli generate-key GATEWAY_CLIENT_SECRET)}
+
 
 	# Generate Directory Structure
 	for i in ${DIR_LIST}; do
@@ -233,8 +245,8 @@ services:
     expose:
       - "3000"
     volumes:
-      - ./sshrec:/usr/share/nginx/html/assets/videos/sshrec:z
-      - ./rdprec:/usr/share/nginx/html/assets/videos/rdprec:z
+      - ../../data/ssh-proxy:/usr/share/nginx/html/assets/videos/sshrec:z
+      - ../../data/rdp-proxy:/usr/share/nginx/html/assets/videos/rdprec:z
     logging: *dev-logging
     labels:
       - "traefik.enable=true"
@@ -249,8 +261,8 @@ services:
     image: cr-preview.pentium.network/mavis/postgres:12.3
     container_name: mavis-postgres
     volumes:
-      - ./db/data:/var/lib/postgresql/data:Z
-      - ./db/backups:/backups:z
+      - ../../data/maindb:/var/lib/postgresql/data:Z
+      - ../../backups/db:/backups:z
     env_file:
       - ../.env
     networks:
@@ -270,7 +282,7 @@ services:
     expose:
       - "4002"
     volumes:
-      - ./sshrec:/tmp/sshrec:z
+      - ../../data/ssh-proxy:/tmp/sshrec:z
     logging: *dev-logging
     labels:
       - "traefik.enable=true"
@@ -291,7 +303,7 @@ services:
     expose:
       - "4822"
     volumes:
-      - ./rdprec:/tmp/rdprec:z
+      - ../../data/rdp-proxy:/tmp/rdprec:z
     logging: *dev-logging
 
   mavis-rdpwsserver:
@@ -327,7 +339,7 @@ services:
     networks:
       - mavis
     volumes:
-      - ./rdprec:/tmp/rdprec:z
+      - ../../data/rdp-proxy:/tmp/rdprec:z
     logging: *dev-logging
 
   mavis-pgweb:
@@ -364,8 +376,8 @@ services:
     image: ${MAVIS_REPO}/apiserver:${TAG}
     container_name: mavis-task-runner
     volumes:
-      - ./logs/scripts:/app/logs/scripts:Z
-      - ./logs:/app/logs
+      - ../../logs/scripts:/app/logs/scripts:Z
+      - ../../logs:/app/logs
     depends_on:
       - mavis-redis
       - mavis-postgres
@@ -418,15 +430,13 @@ services:
       - "traefik.http.routers.mavis-flower.service=mavis-flower@docker"
       - "traefik.http.routers.mavis-flower.tls.certresolver=letsencrypt"
 
-
 networks:
   mavis:
     name: mavis
-
 EOF
 	cat >${INSTALL_DIR}/config/.env <<EOF
 MASTER_KEYS=${MASTER_KEYS}
-MAVIS_URL=http://${MAVIS_URL}
+MAVIS_URL=${MAVIS_URL:-https://${MAVIS_URL}}
 SECRET_KEY=${SECRET_KEY}
 MEDIA_STORE_PATH=${MEDIA_STORE_PATH:-${INSTALL_DIR}/data/media}
 SSH_RECORDING_PATH=${SSH_RECORDING_PATH:-${INSTALL_DIR}/data/ssh-proxy}
@@ -462,9 +472,9 @@ After=docker.service
 Environment=COMPOSE_HTTP_TIMEOUT=600
 ExecStartPre=/bin/sh -c "/usr/bin/docker network create --driver bridge mavis || /bin/true"
 ExecStartPre=/bin/sh -c "/usr/bin/docker rm keeper --force || /bin/true"
-ExecStartPre=/bin/sh -c "/usr/bin/docker pull cr-preview.pentium.network/keeper:\$(cat ${INSTALL_DIR}/config/current_version)"
-ExecStart=/bin/sh -c "/usr/bin/docker run --rm --log-driver=journald --name=keeper --net=mavis -v /var/run/docker.sock:/var/run/docker.sock -v ${INSTALL_DIR}:${INSTALL_DIR} -e INSTALL_DIR=${INSTALL_DIR} cr-preview.pentium.network/keeper:\$(cat ${INSTALL_DIR}/config/current_version) start"
-ExecStop=/bin/sh -c "/usr/bin/docker run --rm --log-driver=journald --name=terminator --net=mavis -v /var/run/docker.sock:/var/run/docker.sock -v ${INSTALL_DIR}:${INSTALL_DIR} -e INSTALL_DIR=${INSTALL_DIR} cr-preview.pentium.network/keeper:\$(cat ${INSTALL_DIR}/config/current_version) stop"
+ExecStartPre=/bin/sh -c "/usr/bin/docker pull ${MAVIS_REPO}/keeper:\$(cat ${INSTALL_DIR}/config/current_version)"
+ExecStart=/bin/sh -c "/usr/bin/docker run --rm --log-driver=journald --name=keeper --net=mavis -v /var/run/docker.sock:/var/run/docker.sock -v ${INSTALL_DIR}:${INSTALL_DIR} -e INSTALL_DIR=${INSTALL_DIR} ${MAVIS_REPO}/keeper:\$(cat ${INSTALL_DIR}/config/current_version) start"
+ExecStop=/bin/sh -c "/usr/bin/docker run --rm --log-driver=journald --name=terminator --net=mavis -v /var/run/docker.sock:/var/run/docker.sock -v ${INSTALL_DIR}:${INSTALL_DIR} -e INSTALL_DIR=${INSTALL_DIR} ${MAVIS_REPO}/keeper:\$(cat ${INSTALL_DIR}/config/current_version) stop"
 StandardOutput=syslog
 Restart=always
 Type=simple
@@ -816,6 +826,9 @@ do_install() {
 	ubuntu.xenial | ubuntu.trusty)
 		deprecation_notice "$lsb_dist" "$dist_version"
 		;;
+	centos.7)
+		deprecation_notice "$lsb_dist" "$dist_version"
+	    ;;
 	fedora.*)
 		if [ "$dist_version" -lt 33 ]; then
 			deprecation_notice "$lsb_dist" "$dist_version"
@@ -1093,6 +1106,24 @@ start_docker
 check_user
 install_mavis
 
+
+result=$(keeper_cli status)
+i=0
+while [ x"$(echo ${result} |grep 'status normal')" = x"" ];do
+     i=$((i+1))
+     if [ $i -gt 10  ];then
+       echo -e "${COLOR_RED}Check mavis status timeout${COLOR_REST}"
+       echo -e "${COLOR_RED}Please reinstall later or Run command to check conatiner status [ sudo docker ps ]${COLOR_REST}"
+       exit 1
+     fi
+     result=$(keeper_cli status)
+     echo "Wait for mavis warm up"
+     sleep 30
+done
+
+
+
+
 echo "           _____                    _____                    _____                    _____                    _____ "
 echo "          /\    \                  /\    \                  /\    \                  /\    \                  /\    \ "
 echo "         /::\____\                /::\    \                /::\____\                /::\    \                /::\    \ "
@@ -1114,7 +1145,6 @@ echo "          /:::/    /               /:::/    /                             
 echo "         /:::/    /               /:::/    /                                       \:::\____\               \::::/    / "
 echo "         \::/    /                \::/    /                                         \::/    /                \::/    / "
 echo "          \/____/                  \/____/                                           \/____/                  \/____/ "
-echo "---------   Install mavis keeper success , please check it"
-echo "---------   Run command: sudo journalctl CONTAINER_NAME=keeper -f"
-echo "---------   Your MAVIS_URL is [http://${MAVIS_URL}]"
-echo "---------   Your default account and passwd is [admin/admin]"
+echo -e "---------   ${COLOR_GREEN}Install mavis keeper success , please check it${COLOR_REST}"
+echo -e "---------   ${COLOR_GREEN}Your MAVIS_URL is [https://${MAVIS_URL}]${COLOR_REST}"
+echo -e "---------   ${COLOR_GREEN}Your default account and password is [admin/admin]${COLOR_REST}"
