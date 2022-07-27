@@ -74,6 +74,7 @@ check_user() {
 }
 
 
+
 check_environment() {
 
 	## Check disk space (40GB)
@@ -175,7 +176,6 @@ install_mavis() {
 	SECRET_KEY=${SECRET_KEY:-$(keeper_cli generate-key SECRET_KEY)}
 	GATEWAY_CLIENT_ID=${GATEWAY_CLIENT_ID:-$(keeper_cli generate-key GATEWAY_CLIENT_ID)}
 	GATEWAY_CLIENT_SECRET=${GATEWAY_CLIENT_SECRET:-$(keeper_cli generate-key GATEWAY_CLIENT_SECRET)}
-
 
 	# Generate Directory Structure
 	for i in ${DIR_LIST}; do
@@ -430,13 +430,15 @@ services:
       - "traefik.http.routers.mavis-flower.service=mavis-flower@docker"
       - "traefik.http.routers.mavis-flower.tls.certresolver=letsencrypt"
 
+
 networks:
   mavis:
     name: mavis
+
 EOF
 	cat >${INSTALL_DIR}/config/.env <<EOF
 MASTER_KEYS=${MASTER_KEYS}
-MAVIS_URL=${MAVIS_URL:-https://${MAVIS_URL}}
+MAVIS_URL=https://${MAVIS_URL}
 SECRET_KEY=${SECRET_KEY}
 MEDIA_STORE_PATH=${MEDIA_STORE_PATH:-${INSTALL_DIR}/data/media}
 SSH_RECORDING_PATH=${SSH_RECORDING_PATH:-${INSTALL_DIR}/data/ssh-proxy}
@@ -826,8 +828,9 @@ do_install() {
 	ubuntu.xenial | ubuntu.trusty)
 		deprecation_notice "$lsb_dist" "$dist_version"
 		;;
-	centos.7)
+	centos.8)
 		deprecation_notice "$lsb_dist" "$dist_version"
+		exit 1
 	    ;;
 	fedora.*)
 		if [ "$dist_version" -lt 33 ]; then
